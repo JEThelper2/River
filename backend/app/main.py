@@ -15,6 +15,14 @@ from app.services.coldstorage import start_scheduler, stop_scheduler
 
 settings = get_settings()
 
+
+def _assert_production_secrets() -> None:
+    if settings.environment == "production":
+        if settings.jwt_secret == "change-me-in-production":
+            raise RuntimeError("Production must set jwt_secret to a strong value.")
+        if settings.ip_hash_salt == "change-me-in-production":
+            raise RuntimeError("Production must set ip_hash_salt to a strong value.")
+
 # Consistent, leveled logging across every `spacepad.*` logger, emitted to stdout
 # for the hosting platform's log aggregator to collect. (Structured JSON output is
 # a straightforward follow-on — swap the formatter — see PRODUCTION_READINESS.md.)
@@ -27,6 +35,7 @@ logger = logging.getLogger("spacepad")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _assert_production_secrets()
     await storage.ensure_bucket()
     await ratelimit.init()
     start_scheduler()

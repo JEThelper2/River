@@ -12,8 +12,8 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
-    text,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -88,6 +88,10 @@ class Pad(Base, TimestampMixin):
     pin_format: Mapped[PinFormat | None] = mapped_column(
         Enum(PinFormat, name="pin_format"), nullable=True
     )
+    pinned: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default=text("false")
+    )
+    color: Mapped[str | None] = mapped_column(String(32), nullable=True)
 
     # DB-level backstop for rename uniqueness (the app pre-check is the fast path;
     # this catches concurrent same-name renames). The custom `name` is the

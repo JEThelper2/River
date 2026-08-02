@@ -13,17 +13,17 @@ from app.models.token import EmailToken, TokenPurpose
 from app.models.user import User
 
 __all__ = [
+    "ClaimToken",
+    "CollaboratorRole",
+    "EmailToken",
     "File",
-    "ScanStatus",
     "Pad",
     "PadCollaborator",
     "PadPinUnlock",
     "PinFormat",
-    "CollaboratorRole",
-    "Visibility",
     "Redirect",
-    "ClaimToken",
-    "EmailToken",
+    "ScanStatus",
     "TokenPurpose",
     "User",
+    "Visibility",
 ]

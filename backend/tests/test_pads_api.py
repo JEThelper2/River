@@ -57,6 +57,38 @@ async def test_update_pad_content(client):
     assert resp.json()["content"] == "# Title\n\nbody"
 
 
+async def test_create_pad_content_too_large(client, monkeypatch):
+    from app.core.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "max_pad_content_chars", 10, raising=False)
+    resp = await client.post("/api/pads", json={"slug": "huge-pad", "content": "x" * 11})
+    assert resp.status_code == 413
+    assert "characters or fewer" in resp.json()["detail"]
+
+
+async def test_update_pad_content_too_large(client, monkeypatch):
+    from app.core.config import get_settings
+
+    await client.post("/api/pads", json={"slug": "edit-large"})
+    monkeypatch.setattr(get_settings(), "max_pad_content_chars", 10, raising=False)
+    resp = await client.put("/api/pads/edit-large", json={"content": "x" * 11})
+    assert resp.status_code == 413
+    assert "characters or fewer" in resp.json()["detail"]
+
+
+async def test_lock_blocks_put_edit(client):
+    # Anonymous locked pad should reject content PUT until unlocked.
+    await client.post("/api/pads", json={"slug": "locked-put", "content": "secret"})
+    await client.patch(
+        "/api/pads/locked-put",
+        json={"pin_protected": True, "pin": "1234", "pin_format": "numeric"},
+    )
+
+    resp = await client.put("/api/pads/locked-put", json={"content": "new"})
+    assert resp.status_code == 403
+    assert "locked" in resp.json()["detail"].lower()
+
+
 async def test_raw_endpoint(client):
     await client.post("/api/pads", json={"slug": "raw-pad", "content": "raw text"})
     resp = await client.get("/api/pads/raw-pad/raw")

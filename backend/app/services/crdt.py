@@ -16,8 +16,11 @@ from pycrdt import Doc, Text
 from pycrdt.websocket import WebsocketServer, YRoom
 from sqlalchemy import func, select
 
+from app.core.config import get_settings
 from app.db.session import SessionLocal
 from app.models.pad import Pad
+
+settings = get_settings()
 
 CONTENT_KEY = "content"
 _SAVE_DEBOUNCE_SECONDS = 1.0
@@ -56,7 +59,7 @@ class PadWebsocketServer(WebsocketServer):
         if resolved_name is not None:
             await self._flush(resolved_name)
             self._subscriptions.pop(resolved_name, None)
-        
+
         if room is not None:
             await super().delete_room(room=room)
         else:
@@ -99,6 +102,12 @@ class PadWebsocketServer(WebsocketServer):
                 await db.execute(select(Pad).where(Pad.slug == slug))
             ).scalar_one_or_none()
             if pad is None:
+                return
+            if len(text) > settings.max_pad_content_chars:
+                self.log.warning(
+                    "CRDT flush skipped: pad content exceeds max %d chars",
+                    settings.max_pad_content_chars,
+                )
                 return
             pad.crdt_snapshot = snapshot
             pad.crdt_snapshot_updated_at = func.now()

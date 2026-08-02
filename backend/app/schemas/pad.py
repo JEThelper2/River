@@ -30,6 +30,8 @@ class PadPatch(BaseModel):
     visibility: Visibility | None = None
     is_archived: bool | None = None
     pin_protected: bool | None = None
+    pinned: bool | None = None
+    color: str | None = Field(default=None, max_length=32)
     pin: str | None = Field(default=None, max_length=64)
     pin_format: PinFormat | None = None
 
@@ -81,6 +83,8 @@ class PadOut(BaseModel):
     pin_format: PinFormat | None = None
     # Computed per-request for the authenticated viewer: may they edit content?
     can_edit: bool = True
+    pinned: bool = False
+    color: str | None = None
     # True when the pad is PIN-gated and this requester hasn't unlocked it; when
     # set, `content` is withheld (empty) so locked content never leaks.
     locked: bool = False
@@ -106,6 +110,8 @@ class PadListItem(BaseModel):
     updated_at: datetime
     file_count: int = 0
     size_bytes: int = 0
+    pinned: bool = False
+    color: str | None = None
     preview_text: str | None = None
 
 

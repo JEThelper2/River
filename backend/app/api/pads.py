@@ -114,6 +114,8 @@ async def list_my_pads(
                 updated_at=pad.updated_at,
                 file_count=r["file_count"],
                 size_bytes=r["size_bytes"],
+                pinned=pad.pinned,
+                color=pad.color,
                 preview_text=_preview_text(pad.content),
             )
         )
@@ -153,6 +155,8 @@ async def create_pad(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="That slug is already taken."
         )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc))
     return await _pad_out(db, pad, user)
 
 
@@ -220,6 +224,7 @@ async def get_pad(
 async def update_pad(
     slug: str,
     body: PadUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     user: User | None = Depends(get_optional_user),
 ):
@@ -227,13 +232,22 @@ async def update_pad(
     pad = await pad_service.get_pad_by_slug(db, slug)
     if pad is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pad not found.")
+    unlock_token = request.cookies.get(pin_service.UNLOCK_COOKIE)
+    if not await pin_service.has_pin_access(db, pad, user, unlock_token):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This pad is locked. Enter its PIN before saving.",
+        )
     if not await access_service.can_write_content(db, pad, user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to edit this pad.",
         )
-    pad = await pad_service.update_pad_content(db, pad, body.content)
-    return await _pad_out(db, pad, user)
+    try:
+        pad = await pad_service.update_pad_content(db, pad, body.content)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail=str(exc))
+    return await _pad_out(db, pad, user, unlock_token)
 
 
 @router.patch("/{slug}", response_model=PadOut)
@@ -309,6 +323,8 @@ async def patch_pad(
         pad,
         visibility=fields.get("visibility", pad_service._UNSET),
         is_archived=fields.get("is_archived", pad_service._UNSET),
+        pinned=fields.get("pinned", pad_service._UNSET),
+        color=fields.get("color", pad_service._UNSET),
     )
 
     if "pin_protected" in fields:

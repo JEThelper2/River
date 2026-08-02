@@ -101,7 +101,7 @@ class _FastAPIChannel:
         self.path = path
         self._conn_id = conn_id
 
-    def __aiter__(self) -> "_FastAPIChannel":
+    def __aiter__(self) -> _FastAPIChannel:
         return self
 
     async def __anext__(self) -> bytes:

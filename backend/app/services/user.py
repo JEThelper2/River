@@ -200,7 +200,7 @@ async def create_user(
         normalized_username = username_service.validate_username(username)
     except username_service.UsernameError as e:
         raise UsernameTakenError(str(e))
-    
+
     user = User(
         email=email.strip().lower(),
         username=normalized_username,
@@ -259,7 +259,7 @@ async def upsert_google_user(
     # Ensure minimum length of 3 for username
     if len(username) < 3:
         username = username + "user"
-    
+
     user = User(
         email=normalized_email,
         oauth_provider="google",

@@ -107,8 +107,15 @@ class Settings(BaseSettings):
     pin_unlock_window_seconds: int = 4 * 60 * 60  # 4 hours
     pin_min_length: int = 4
     pin_max_length: int = 12
+    pin_argon2_time_cost: int = 4
+    pin_argon2_memory_cost: int = 102_400
+    pin_argon2_parallelism: int = 8
     rl_pin_attempts_per_window: int = 5
     rl_pin_window_seconds: int = 300  # 5 attempts / 5 min / (pad, IP)
+
+    # Pad content limits. CRDT and REST saves share the same maximum to avoid
+    # ever storing unbounded text in the DB.
+    max_pad_content_chars: int = 100_000
 
     # Pad claim tokens. Time-bound (not single-use): a token can be submitted
     # repeatedly until it expires; a *successful* claim consumes it. Generating a

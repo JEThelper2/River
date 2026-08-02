@@ -102,7 +102,7 @@ async def test_password_reset_expired_token(client, captured_emails, session_fac
     # force-expire the token
     async with session_factory() as db:
         row = (await db.execute(select(EmailToken))).scalar_one()
-        row.expires_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=2)
+        row.expires_at = dt.datetime.now(dt.UTC) - dt.timedelta(hours=2)
         await db.commit()
     token = _token_from(captured_emails[0]["body"])
     resp = await client.post(

@@ -6,16 +6,16 @@ Create Date: 2026-06-24 16:35:00.000000
 
 Add previous_names JSON array to pads table to track old names for redirects.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = 'h3i4j5k6l7m8'
-down_revision: Union[str, None] = 'g2h3i4j5k6l7'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = 'g2h3i4j5k6l7'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

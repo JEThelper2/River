@@ -145,7 +145,7 @@ async def test_unlock_expires_after_window(client, session_factory):
     # Force the unlock session into the past.
     async with session_factory() as db:
         row = (await db.execute(select(PadPinUnlock))).scalar_one()
-        row.expires_at = dt.datetime.now(dt.timezone.utc) - dt.timedelta(minutes=1)
+        row.expires_at = dt.datetime.now(dt.UTC) - dt.timedelta(minutes=1)
         await db.commit()
 
     relocked = await client.get("/api/pads/expiry-pad")

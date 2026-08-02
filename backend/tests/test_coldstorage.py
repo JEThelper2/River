@@ -1,6 +1,6 @@
 """Phase 6 cold-storage eligibility flagging."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest_asyncio
 from sqlalchemy import select
@@ -16,7 +16,7 @@ async def csdb(session_factory, monkeypatch):
 
 
 async def test_flags_only_stale_pads(csdb):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     old = now - timedelta(days=400)
     recent = now - timedelta(days=10)
     async with csdb() as db:
@@ -35,7 +35,7 @@ async def test_flags_only_stale_pads(csdb):
 
 
 async def test_idempotent_no_double_flag(csdb):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     async with csdb() as db:
         db.add(Pad(slug="stale-pad-02", content="", last_opened_at=now - timedelta(days=400)))
         await db.commit()

@@ -5,16 +5,16 @@ Revises: 56b702ce2307
 Create Date: 2026-06-17 10:33:22.349586
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = '610b7d4ad610'
-down_revision: Union[str, None] = '56b702ce2307'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = '56b702ce2307'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

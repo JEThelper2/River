@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,7 @@ async def issue(
         user_id=user_id,
         purpose=purpose,
         token_hash=_hash(raw),
-        expires_at=datetime.now(timezone.utc) + timedelta(seconds=ttl_seconds),
+        expires_at=datetime.now(UTC) + timedelta(seconds=ttl_seconds),
     )
     db.add(token)
     await db.commit()
@@ -57,9 +57,9 @@ async def consume(
         return None
     expires_at = row.expires_at
     if expires_at.tzinfo is None:  # SQLite returns naive datetimes
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    if expires_at < datetime.now(timezone.utc):
+        expires_at = expires_at.replace(tzinfo=UTC)
+    if expires_at < datetime.now(UTC):
         return None
-    row.used_at = datetime.now(timezone.utc)
+    row.used_at = datetime.now(UTC)
     await db.commit()
     return row.user_id

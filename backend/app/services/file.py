@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import uuid
 
 from fastapi import UploadFile
@@ -19,6 +20,17 @@ from app.services import storage
 settings = get_settings()
 
 logger = logging.getLogger("spacepad.file")
+
+_FILENAME_RE = re.compile(r"[^A-Za-z0-9._-]+")
+
+
+def sanitize_filename(filename: str) -> str:
+    filename = filename.strip().replace("\\", "_").replace("/", "_")
+    filename = _FILENAME_RE.sub("_", filename)
+    filename = filename.strip("._- ")
+    if not filename:
+        filename = "file"
+    return filename[:255]
 
 # Stream uploads in chunks so an oversized body is rejected at the cutoff instead
 # of being fully buffered in memory first (AUDIT M1).
@@ -115,6 +127,7 @@ async def create_file(
     row is kept with ``failed`` status so the file is never served.
     """
     max_files, max_file_bytes, max_total_bytes = _caps(user)
+    await db.execute(select(Pad).where(Pad.id == pad.id).with_for_update())
     count, total = await _current_usage(db, pad)
     if count + 1 > max_files:
         raise UploadCapError(f"This pad already has the maximum of {max_files} files.")
@@ -126,6 +139,7 @@ async def create_file(
     storage_key = f"{pad.id}/{uuid.uuid4()}"
     await storage.put_object(storage_key, data, content_type)
 
+    filename = sanitize_filename(filename or "file")
     file = File(
         pad_id=pad.id,
         filename=filename,

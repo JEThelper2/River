@@ -6,10 +6,9 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.pool import NullPool
 
 from alembic import context
-
+from app import models  # noqa: F401  (ensure models are imported/registered)
 from app.core.config import get_settings
 from app.db.base import Base
-from app import models  # noqa: F401  (ensure models are imported/registered)
 
 config = context.config
 

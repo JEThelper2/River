@@ -5,7 +5,6 @@ import uuid
 from sqlalchemy import select
 
 
-
 async def _signup(client, email, username=None):
     if username is None:
         username = email.split("@")[0]
@@ -89,6 +88,25 @@ async def test_patch_rename_owner_only(client):
     )
     assert ok.status_code == 200
     assert ok.json()["name"] == "my-project"
+
+
+async def test_patch_set_pinned_color_persists(client):
+    owner_token, _ = await _signup(client, "owner@example.com")
+    await client.post("/api/pads", json={"slug": "style-pad"}, headers=_auth(owner_token))
+
+    resp = await client.patch(
+        "/api/pads/style-pad",
+        json={"pinned": True, "color": "lavender"},
+        headers=_auth(owner_token),
+    )
+    assert resp.status_code == 200
+    assert resp.json()["pinned"] is True
+    assert resp.json()["color"] == "lavender"
+
+    listing = await client.get("/api/pads", headers=_auth(owner_token))
+    assert listing.status_code == 200
+    assert listing.json()[0]["pinned"] is True
+    assert listing.json()[0]["color"] == "lavender"
 
 
 async def test_patch_clear_custom_name(client):

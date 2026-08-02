@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import secrets
 import string
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -80,7 +80,7 @@ def verify_pin(pad: Pad, pin: str) -> bool:
 
 async def create_unlock(db: AsyncSession, pad: Pad) -> tuple[str, datetime]:
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(
+    expires_at = datetime.now(UTC) + timedelta(
         seconds=settings.pin_unlock_window_seconds
     )
     db.add(PadPinUnlock(pad_id=pad.id, unlock_token=token, expires_at=expires_at))
@@ -93,7 +93,7 @@ async def is_unlock_token_valid(
 ) -> bool:
     if not token:
         return False
-    reference = now or datetime.now(timezone.utc)
+    reference = now or datetime.now(UTC)
     row = (
         await db.execute(
             select(PadPinUnlock).where(
@@ -106,7 +106,7 @@ async def is_unlock_token_valid(
         return False
     expires_at = row.expires_at
     if expires_at.tzinfo is None:  # SQLite returns naive datetimes
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        expires_at = expires_at.replace(tzinfo=UTC)
     return expires_at > reference
 
 
@@ -127,7 +127,7 @@ async def has_pin_access(
 
 
 async def purge_expired(db: AsyncSession, *, now: datetime | None = None) -> int:
-    reference = now or datetime.now(timezone.utc)
+    reference = now or datetime.now(UTC)
     result = await db.execute(
         delete(PadPinUnlock).where(PadPinUnlock.expires_at < reference)
     )

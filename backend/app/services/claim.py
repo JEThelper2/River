@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import secrets
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -56,7 +56,7 @@ async def generate_token(db: AsyncSession, pad: Pad) -> tuple[str, datetime]:
         .values(consumed=True)
     )
     token = secrets.token_urlsafe(32)
-    expires_at = datetime.now(timezone.utc) + timedelta(
+    expires_at = datetime.now(UTC) + timedelta(
         seconds=settings.claim_token_ttl_seconds
     )
     db.add(ClaimToken(pad_id=pad.id, token=token, expires_at=expires_at))
@@ -100,7 +100,7 @@ async def claim_with_token(
     if pad.owner_id is not None:
         raise PadAlreadyOwnedError()
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     token_ok = await _token_matches(db, pad.id, token, now)
 
     if pad.pin_protected:

@@ -6,11 +6,14 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.models.file import File
 from app.models.pad import Pad, PadCollaborator, Visibility
 from app.services import redirect as redirect_service
 from app.services import slug as slug_service
 from app.services import storage
+
+settings = get_settings()
 
 logger = logging.getLogger("spacepad.pad")
 
@@ -38,13 +41,13 @@ async def get_pad_by_owner_and_name(
     db: AsyncSession, username: str, padname: str
 ) -> Pad | None:
     """Get a pad owned by a user, by the pad's name (slug or custom name).
-    
+
     The padname can be either:
     - The pad's slug (default name, case-insensitive)
     - The pad's custom name (case-sensitive)
     """
     from app.models.user import User
-    
+
     # Look up the owner by username
     owner = await db.execute(
         select(User).where(User.username == username.lower())
@@ -52,7 +55,7 @@ async def get_pad_by_owner_and_name(
     owner_user = owner.scalar_one_or_none()
     if owner_user is None:
         return None
-    
+
     # Look up the pad by owner_id and padname
     # Try matching slug first (case-insensitive), then custom name (case-sensitive)
     result = await db.execute(
@@ -149,6 +152,10 @@ async def create_pad(
         ):
             raise SlugTakenError(final_slug)
 
+    if len(content) > settings.max_pad_content_chars:
+        raise ValueError(
+            f"Pad content must be {settings.max_pad_content_chars} characters or fewer."
+        )
     pad = Pad(
         slug=final_slug,
         content=content,
@@ -167,6 +174,10 @@ async def create_pad(
 
 
 async def update_pad_content(db: AsyncSession, pad: Pad, content: str) -> Pad:
+    if len(content) > settings.max_pad_content_chars:
+        raise ValueError(
+            f"Pad content must be {settings.max_pad_content_chars} characters or fewer."
+        )
     pad.content = content
     await db.commit()
     await db.refresh(pad)
@@ -183,12 +194,14 @@ async def update_pad_metadata(
     name=_UNSET,
     visibility: Visibility | None = _UNSET,
     is_archived: bool | None = _UNSET,
+    pinned: bool | None = _UNSET,
+    color: str | None = _UNSET,
 ) -> Pad:
     """Owner-only partial metadata update (rename / visibility / archive).
 
     Only fields explicitly passed (not ``_UNSET``) are applied, so ``name=None``
     clears the custom name while an omitted ``name`` leaves it untouched.
-    
+
     Renaming is handled separately by ``rename_pad`` (it needs a namespaced
     uniqueness check + redirect bookkeeping in one transaction); ``name`` here is
     accepted only as a no-op convenience and ignored if it equals the current
@@ -198,6 +211,10 @@ async def update_pad_metadata(
         pad.visibility = visibility
     if is_archived is not _UNSET and is_archived is not None:
         pad.is_archived = is_archived
+    if pinned is not _UNSET and pinned is not None:
+        pad.pinned = pinned
+    if color is not _UNSET:
+        pad.color = color
     await db.commit()
     await db.refresh(pad)
     return pad

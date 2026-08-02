@@ -11,7 +11,14 @@ from __future__ import annotations
 from argon2 import PasswordHasher
 from argon2.exceptions import Argon2Error, VerifyMismatchError
 
-_ph = PasswordHasher()
+from app.core.config import get_settings
+
+settings = get_settings()
+_ph = PasswordHasher(
+    time_cost=settings.pin_argon2_time_cost,
+    memory_cost=settings.pin_argon2_memory_cost,
+    parallelism=settings.pin_argon2_parallelism,
+)
 
 
 def hash_secret(secret: str) -> str:

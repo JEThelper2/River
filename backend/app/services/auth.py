@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt
 
@@ -30,7 +30,7 @@ def verify_password(password_hash: str, password: str) -> bool:
 
 
 def _encode(sub: uuid.UUID, token_type: str, ttl_seconds: int) -> str:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     payload = {
         "sub": str(sub),
         "type": token_type,

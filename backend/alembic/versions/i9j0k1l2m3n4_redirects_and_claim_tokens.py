@@ -15,16 +15,16 @@ Postgres-only migration (the test harness builds tables from the ORM via
 create_all). Data migration from previous_names is a no-op on current data
 (verified 0 pads with previous_names) but handled for completeness.
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 revision: str = "i9j0k1l2m3n4"
-down_revision: Union[str, None] = "340f7a3d4015"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "340f7a3d4015"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

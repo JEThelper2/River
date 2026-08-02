@@ -94,3 +94,14 @@ async def test_upload_to_missing_pad(client, fake_storage_and_scan):
         files={"file": ("x.txt", b"x", "text/plain")},
     )
     assert resp.status_code == 404
+
+
+async def test_upload_sanitizes_filename(client, fake_storage_and_scan):
+    slug = await _make_pad(client, "sanitize-pad")
+    resp = await client.post(
+        f"/api/pads/{slug}/files",
+        files={"file": ("..\\evil/na?me.txt", b"ok", "text/plain")},
+    )
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["filename"] == "evil_na_me.txt"
