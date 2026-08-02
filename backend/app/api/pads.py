@@ -87,12 +87,17 @@ def _preview_text(content: str | None, limit: int = 140) -> str | None:
 @router.get("", response_model=list[PadListItem])
 async def list_my_pads(
     archived: bool = False,
+    sort: str | None = None,
+    locked: bool | None = None,
+    owned: bool | None = None,
     q: str | None = None,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),
 ):
-    """List the current user's owned pads (dashboard). Newest-opened first."""
-    rows = await pad_service.list_owned_pads(db, user.id, archived=archived, q=q)
+    """List the current user's dashboard pads (owned and shared)."""
+    rows = await pad_service.list_owned_pads(
+        db, user.id, archived=archived, q=q, sort=sort, locked=locked, owned=owned
+    )
     out: list[PadListItem] = []
     for r in rows:
         pad = r["pad"]

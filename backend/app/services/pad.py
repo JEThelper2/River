@@ -293,6 +293,9 @@ async def list_owned_pads(
     *,
     archived: bool = False,
     q: str | None = None,
+    sort: str | None = None,
+    locked: bool | None = None,
+    owned: bool | None = None,
 ) -> list[dict]:
     """Owned pads for the dashboard, newest-opened first, with file aggregates.
 
@@ -306,13 +309,45 @@ async def list_owned_pads(
             func.coalesce(func.sum(File.size_bytes), 0).label("size_bytes"),
         )
         .outerjoin(File, File.pad_id == Pad.id)
-        .where(Pad.owner_id == owner_id, Pad.is_archived == archived)
+        .where(Pad.is_archived == archived)
         .group_by(Pad.id)
-        .order_by(Pad.last_opened_at.desc())
     )
+
+    # Ownership / collaborator filter: when `owned` is true, restrict to pads
+    # the user owns. When omitted or false, include pads the user owns or where
+    # they are a collaborator.
+    if owned:
+        stmt = stmt.where(Pad.owner_id == owner_id)
+    else:
+        collaborator_subq = select(PadCollaborator.pad_id).where(
+            PadCollaborator.user_id == owner_id
+        )
+        stmt = stmt.where(
+            or_(Pad.owner_id == owner_id, Pad.id.in_(collaborator_subq))
+        )
+
+    # PIN-locked filter (optional)
+    if locked is not None:
+        stmt = stmt.where(Pad.pin_protected == locked)
+
+    # Search
     if q:
         like = f"%{q.strip()}%"
         stmt = stmt.where(or_(Pad.name.ilike(like), Pad.slug.ilike(like)))
+
+    # Sorting
+    if sort is None or sort == "updated":
+        stmt = stmt.order_by(Pad.last_opened_at.desc())
+    elif sort == "created":
+        stmt = stmt.order_by(Pad.created_at.desc())
+    elif sort == "name":
+        try:
+            stmt = stmt.order_by(Pad.name.asc().nulls_last(), Pad.last_opened_at.desc())
+        except Exception:
+            stmt = stmt.order_by(Pad.last_opened_at.desc())
+    else:
+        stmt = stmt.order_by(Pad.last_opened_at.desc())
+
     result = await db.execute(stmt)
     items = []
     for pad, file_count, size_bytes in result.all():
